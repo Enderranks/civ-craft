@@ -1,0 +1,7 @@
+{
+	"variants": {
+		"": {
+			"model": "pizzarush:block/pizza_oven"
+		}
+	}
+}
