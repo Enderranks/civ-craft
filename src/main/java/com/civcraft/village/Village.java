@@ -14,10 +14,14 @@ public final class Village {
     private final double z;
     private final Instant createdAt;
     private final int claimRadiusChunks;
-    private final int population;
+    private int population;
+    private int housingCapacity;
+    private String factionName;
+    private final boolean independent;
 
     public Village(UUID id, String name, UUID founderUuid, String founderName, String worldName,
-                   double x, double y, double z, Instant createdAt, int claimRadiusChunks, int population) {
+                   double x, double y, double z, Instant createdAt, int claimRadiusChunks, int population,
+                   int housingCapacity, String factionName, boolean independent) {
         this.id = id;
         this.name = name;
         this.founderUuid = founderUuid;
@@ -29,6 +33,9 @@ public final class Village {
         this.createdAt = createdAt;
         this.claimRadiusChunks = claimRadiusChunks;
         this.population = population;
+        this.housingCapacity = housingCapacity;
+        this.factionName = factionName;
+        this.independent = independent;
     }
 
     public UUID getId() { return id; }
@@ -42,6 +49,27 @@ public final class Village {
     public Instant getCreatedAt() { return createdAt; }
     public int getClaimRadiusChunks() { return claimRadiusChunks; }
     public int getPopulation() { return population; }
+    public int getHousingCapacity() { return housingCapacity; }
+    public String getFactionName() { return factionName; }
+    public boolean isIndependent() { return independent; }
+
+    public void growPopulation() {
+        if (population < housingCapacity) {
+            population++;
+        }
+    }
+
+    public void setFactionName(String factionName) { this.factionName = factionName; }
+
+    public boolean contains(org.bukkit.Location location) {
+        if (location.getWorld() == null || !worldName.equals(location.getWorld().getName())) {
+            return false;
+        }
+        int centerChunkX = ((int) Math.floor(x)) >> 4;
+        int centerChunkZ = ((int) Math.floor(z)) >> 4;
+        return Math.abs(location.getChunk().getX() - centerChunkX) <= claimRadiusChunks
+                && Math.abs(location.getChunk().getZ() - centerChunkZ) <= claimRadiusChunks;
+    }
 
     public double distanceSquared(String worldName, double x, double z) {
         if (!this.worldName.equals(worldName)) {

@@ -2,6 +2,7 @@ package com.civcraft;
 
 import com.civcraft.command.CivCraftCommand;
 import com.civcraft.village.VillageStore;
+import com.civcraft.listener.CivCraftListener;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -12,6 +13,8 @@ public final class CivCraftPlugin extends JavaPlugin {
     public void onEnable() {
         villageStore = new VillageStore(this);
         villageStore.load();
+        getServer().getPluginManager().registerEvents(new CivCraftListener(this), this);
+        getServer().getScheduler().runTaskTimer(this, villageStore::simulatePopulation, 20L * 60L * 5L, 20L * 60L * 5L);
 
         PluginCommand command = getCommand("civcraft");
         if (command == null) {

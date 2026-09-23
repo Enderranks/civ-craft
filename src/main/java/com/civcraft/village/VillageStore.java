@@ -24,6 +24,7 @@ public final class VillageStore {
     }
 
     public void load() {
+        villages.clear();
         if (!plugin.getDataFolder().exists() && !plugin.getDataFolder().mkdirs()) {
             plugin.getLogger().warning("Could not create the Civ-Craft data folder.");
         }
@@ -41,7 +42,7 @@ public final class VillageStore {
                 Village village = new Village(
                         id,
                         section.getString(key + ".name", "Unnamed Village"),
-                        UUID.fromString(section.getString(key + ".founder-uuid")),
+                        parseUuid(section.getString(key + ".founder-uuid")),
                         section.getString(key + ".founder-name", "Unknown"),
                         section.getString(key + ".world", "world"),
                         section.getDouble(key + ".x"),
@@ -49,12 +50,19 @@ public final class VillageStore {
                         section.getDouble(key + ".z"),
                         Instant.ofEpochMilli(section.getLong(key + ".created-at", System.currentTimeMillis())),
                         section.getInt(key + ".claim-radius-chunks", 1),
-                        section.getInt(key + ".population", 8));
+                        section.getInt(key + ".population", 8),
+                        section.getInt(key + ".housing-capacity", 16),
+                        section.getString(key + ".faction", null),
+                        section.getBoolean(key + ".independent", false));
                 villages.put(id, village);
             } catch (RuntimeException ex) {
                 plugin.getLogger().warning("Skipping invalid village " + key + ": " + ex.getMessage());
             }
         }
+    }
+
+    private UUID parseUuid(String value) {
+        return value == null || value.isBlank() ? null : UUID.fromString(value);
     }
 
     public void save() {
@@ -65,7 +73,7 @@ public final class VillageStore {
         for (Village village : villages.values()) {
             String path = "villages." + village.getId();
             config.set(path + ".name", village.getName());
-            config.set(path + ".founder-uuid", village.getFounderUuid().toString());
+            config.set(path + ".founder-uuid", village.getFounderUuid() == null ? null : village.getFounderUuid().toString());
             config.set(path + ".founder-name", village.getFounderName());
             config.set(path + ".world", village.getWorldName());
             config.set(path + ".x", village.getX());
@@ -74,6 +82,9 @@ public final class VillageStore {
             config.set(path + ".created-at", village.getCreatedAt().toEpochMilli());
             config.set(path + ".claim-radius-chunks", village.getClaimRadiusChunks());
             config.set(path + ".population", village.getPopulation());
+            config.set(path + ".housing-capacity", village.getHousingCapacity());
+            config.set(path + ".faction", village.getFactionName());
+            config.set(path + ".independent", village.isIndependent());
         }
         try {
             config.save(file);
@@ -83,14 +94,48 @@ public final class VillageStore {
     }
 
     public Village create(String name, Player founder) {
-        Location location = founder.getLocation();
+        return create(name, founder, founder.getLocation());
+    }
+
+    public Village create(String name, Player founder, Location location) {
         Village village = new Village(
                 UUID.randomUUID(), name, founder.getUniqueId(), founder.getName(),
                 location.getWorld().getName(), location.getX(), location.getY(), location.getZ(),
-                Instant.now(), 1, 8);
+                Instant.now(), 1, 8, 16, null, false);
         villages.put(village.getId(), village);
         save();
         return village;
+    }
+
+    public Village adoptIndependent(String name, Location location) {
+        Village village = new Village(
+                UUID.randomUUID(), name, null, "Independent villagers",
+                location.getWorld().getName(), location.getX(), location.getY(), location.getZ(),
+                Instant.now(), 1, 6, 12, null, true);
+        villages.put(village.getId(), village);
+        save();
+        return village;
+    }
+
+    public boolean overlaps(Location location) {
+        for (Village village : villages.values()) {
+            if (village.distanceSquared(location.getWorld().getName(), location.getX(), location.getZ()) < 48 * 48) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void simulatePopulation() {
+        boolean changed = false;
+        for (Village village : villages.values()) {
+            int before = village.getPopulation();
+            village.growPopulation();
+            changed |= before != village.getPopulation();
+        }
+        if (changed) {
+            save();
+        }
     }
 
     public Collection<Village> getVillages() {
@@ -108,5 +153,14 @@ public final class VillageStore {
             }
         }
         return nearest;
+    }
+
+    public Village at(Location location) {
+        for (Village village : villages.values()) {
+            if (village.contains(location)) {
+                return village;
+            }
+        }
+        return null;
     }
 }
