@@ -1,0 +1,18 @@
+name: CivCraft
+version: '${version}'
+main: com.civcraft.CivCraftPlugin
+api-version: '26.2'
+description: A living civilization plugin for Paper servers.
+authors:
+  - Austi
+
+commands:
+  civcraft:
+    description: Manage Civ-Craft villages and civilizations.
+    usage: /civcraft <village|reload> ...
+    aliases: [cc]
+
+permissions:
+  civcraft.admin:
+    description: Allows administrative Civ-Craft commands.
+    default: op
